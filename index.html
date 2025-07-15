@@ -15,7 +15,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Game objects
+// Player
 let player = { x: 50, y: 300, width: 20, height: 20, vy: 0, onGround: false };
 let gravity = 0.8;
 let jumpPower = -12;
@@ -27,14 +27,23 @@ document.addEventListener('keydown', e => keys[e.code] = true);
 document.addEventListener('keyup', e => keys[e.code] = false);
 
 // Spikes
-let spikes = [{x: 400, y: floorY - 10, width: 20, height: 10}];
+let spikes = [
+  {x: 400, y: floorY - 10, width: 20, height: 10, popUp: false, timer: 0}
+];
+
+// Troll holes
+let holes = [{x: 200, width: 50}];
+
+// Disappearing platforms
+let disappearPlatforms = [
+  {x: 600, y: floorY - 20, width: 50, height: 10, visible: true, timer: 0}
+];
 
 function gameLoop() {
-  // Update
+  // Update player
   player.vy += gravity;
   player.y += player.vy;
 
-  // Left/Right
   if (keys['ArrowRight']) player.x += 4;
   if (keys['ArrowLeft']) player.x -= 4;
 
@@ -44,41 +53,83 @@ function gameLoop() {
     player.onGround = false;
   }
 
-  // Floor collision
-  if (player.y + player.height > floorY) {
+  // Floor collision except holes
+  let onHole = holes.some(h => player.x + player.width > h.x && player.x < h.x + h.width);
+  if (player.y + player.height > floorY && !onHole) {
     player.y = floorY - player.height;
     player.vy = 0;
     player.onGround = true;
+  } else if (player.y + player.height > canvas.height) {
+    // Fell into hole
+    resetPlayer("You fell! 😈");
   }
 
-  // Spike collision
-  for (let s of spikes) {
-    if (player.x < s.x + s.width && player.x + player.width > s.x &&
-        player.y < s.y + s.height && player.y + player.height > s.y) {
-      // Reset player on hit
-      player.x = 50; player.y = 300; player.vy = 0;
-      alert("You got trolled! 😈");
+  // Disappearing platform logic
+  disappearPlatforms.forEach(p => {
+    p.timer += 1;
+    if (p.timer > 100) {
+      p.visible = !p.visible;
+      p.timer = 0;
     }
-  }
+    if (p.visible &&
+        player.x + player.width > p.x && player.x < p.x + p.width &&
+        player.y + player.height > p.y && player.y + player.height < p.y + 10) {
+      player.y = p.y - player.height;
+      player.vy = 0;
+      player.onGround = true;
+    }
+  });
+
+  // Spike pop-up logic
+  spikes.forEach(s => {
+    s.timer += 1;
+    if (s.timer > 80) {
+      s.popUp = !s.popUp;
+      s.timer = 0;
+    }
+    if (s.popUp) {
+      if (player.x < s.x + s.width && player.x + player.width > s.x &&
+          player.y + player.height > s.y && player.y < s.y + s.height) {
+        resetPlayer("You got spiked! 😈");
+      }
+    }
+  });
 
   // Draw
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  
+
   // Floor
   ctx.fillStyle = "#444";
   ctx.fillRect(0, floorY, canvas.width, canvas.height - floorY);
-  
+
+  // Holes
+  ctx.fillStyle = "#000";
+  holes.forEach(h => {
+    ctx.fillRect(h.x, floorY, h.width, canvas.height - floorY);
+  });
+
+  // Disappearing platforms
+  ctx.fillStyle = "#888";
+  disappearPlatforms.forEach(p => {
+    if (p.visible) ctx.fillRect(p.x, p.y, p.width, p.height);
+  });
+
   // Player
   ctx.fillStyle = "#0f0";
   ctx.fillRect(player.x, player.y, player.width, player.height);
-  
+
   // Spikes
-  ctx.fillStyle = "#f00";
-  for (let s of spikes) {
+  spikes.forEach(s => {
+    ctx.fillStyle = s.popUp ? "#f00" : "#400";
     ctx.fillRect(s.x, s.y, s.width, s.height);
-  }
+  });
 
   requestAnimationFrame(gameLoop);
+}
+
+function resetPlayer(msg) {
+  alert(msg);
+  player.x = 50; player.y = 300; player.vy = 0;
 }
 
 gameLoop();
