@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Level Devil Clone</title>
+<title>Level Devil Clone with Collision</title>
 <style>
   body {
     margin: 0; 
@@ -74,6 +74,15 @@ function draw() {
   }
 }
 
+function collideRect(r1, r2) {
+  return (
+    r1.x < r2.x + r2.w &&
+    r1.x + r1.w > r2.x &&
+    r1.y < r2.y &&
+    r1.y + r1.h > r2.y - r2.h
+  );
+}
+
 function update() {
   player.dy += gravity;
   player.y += player.dy;
@@ -85,7 +94,25 @@ function update() {
     player.dy = 0;
     player.jumping = false;
   }
-  
+
+  // check collisions
+  for (let obs of obstacles) {
+    if (collideRect(player, obs)) {
+      // coming from above
+      if (player.dy > 0 && player.y + player.h - player.dy <= obs.y - obs.h) {
+        player.y = obs.y - obs.h - player.h;
+        player.dy = 0;
+        player.jumping = false;
+      } else if (player.dx > 0) {
+        // moving right
+        player.x = obs.x - player.w;
+      } else if (player.dx < 0) {
+        // moving left
+        player.x = obs.x + obs.w;
+      }
+    }
+  }
+
   // keep inside canvas
   if (player.x < 0) player.x = 0;
   if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
@@ -97,6 +124,7 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+// Controls
 document.getElementById("left").addEventListener("touchstart", () => player.dx = -2);
 document.getElementById("left").addEventListener("touchend", () => player.dx = 0);
 
