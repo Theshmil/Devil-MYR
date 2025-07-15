@@ -35,7 +35,7 @@
 <canvas id="game" width="400" height="200"></canvas>
 <div id="controls">
   <button class="btn" ontouchstart="left=true" ontouchend="left=false">◀️</button>
-  <button class="btn" ontouchstart="jump=true" ontouchend="jump=false">⬆️</button>
+  <button class="btn" ontouchstart="jumpAction()">⬆️</button>
   <button class="btn" ontouchstart="right=true" ontouchend="right=false">▶️</button>
 </div>
 <button id="restartBtn" onclick="restart()">Restart</button>
@@ -48,7 +48,7 @@ let gravity = 0.5;
 let gameOver = false;
 let youWin = false;
 
-let left = false, right = false, jump = false;
+let left = false, right = false;
 let ground = canvas.height - 20;
 
 function init() {
@@ -62,6 +62,13 @@ function init() {
   gameOver = false;
   youWin = false;
   document.getElementById('restartBtn').style.display = 'none';
+}
+
+function jumpAction() {
+  if (!player.jumping) {
+    player.dy = -7;
+    player.jumping = true;
+  }
 }
 
 function collideRect(a,b) {
@@ -80,11 +87,6 @@ function update() {
 
   player.x += player.dx;
 
-  if (jump && !player.jumping) {
-    player.dy = -7;
-    player.jumping = true;
-  }
-
   if (player.y + player.h > ground) {
     player.y = ground - player.h;
     player.dy = 0;
@@ -92,7 +94,6 @@ function update() {
   }
 
   for (let obs of obstacles) {
-    // Fix: only trigger game over if colliding and player's bottom is above obs.y + 2
     if (collideRect(player, obs) && player.y + player.h - 2 <= obs.y + obs.h) {
       gameOver = true;
       document.getElementById('restartBtn').style.display = 'block';
