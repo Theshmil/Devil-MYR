@@ -47,9 +47,10 @@ let gameOver = false;
 let youWin = false;
 
 let spikes = [{ x: 300, y: 360, w: 40, h: 40 }, { x: 500, y: 360, w: 40, h: 40 }];
-let door = { x: 700, y: 320, w: 40, h: 80 };
+let door = { x: 1000, y: 320, w: 40, h: 80 };
 let enemies = [{ x: 400, y: 360, w: 40, h: 40, dir: 1 }];
-let camera = { x: 0, y: 0, width: canvas.width, height: canvas.height };
+
+let cameraX = 0;
 
 document.getElementById('left').addEventListener('touchstart', ()=>{ isLeft=true; });
 document.getElementById('left').addEventListener('touchend', ()=>{ isLeft=false; });
@@ -70,43 +71,46 @@ function resetGame() {
   player.dy = 0;
   gameOver = false;
   youWin = false;
-  camera.x = 0;
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw the world
   ctx.save();
-  ctx.translate(-camera.x, -camera.y); // Move the camera
+  ctx.translate(-cameraX, 0); // move camera
 
+  // draw ground
   ctx.fillStyle="#888";
-  ctx.fillRect(0, 360, 2000, 40); // Larger ground for scrolling
+  ctx.fillRect(0, 360, 2000, 40);
 
+  // draw spikes
   ctx.fillStyle="red";
   spikes.forEach(s => ctx.fillRect(s.x, s.y, s.w, s.h));
 
+  // draw door
   ctx.fillStyle="green";
   ctx.fillRect(door.x, door.y, door.w, door.h);
 
+  // draw enemies
   ctx.fillStyle="purple";
   enemies.forEach(e => ctx.fillRect(e.x, e.y, e.w, e.h));
 
+  // draw player
   ctx.fillStyle="yellow";
   ctx.fillRect(player.x, player.y, player.w, player.h);
 
+  // game over or win text
   if (gameOver) {
     ctx.fillStyle="white";
     ctx.font="50px sans-serif";
-    ctx.fillText("Game Over", canvas.width / 2 - 140, canvas.height / 2);
+    ctx.fillText("Game Over", cameraX + canvas.width/2 - 140, canvas.height / 2);
     ctx.font="30px sans-serif";
-    ctx.fillText("Tap jump to restart", canvas.width / 2 - 140, canvas.height / 2 + 40);
+    ctx.fillText("Tap jump to restart", cameraX + canvas.width/2 - 140, canvas.height / 2 + 40);
   }
-
   if (youWin) {
     ctx.fillStyle="white";
     ctx.font="50px sans-serif";
-    ctx.fillText("You Win!", canvas.width / 2 - 100, canvas.height / 2);
+    ctx.fillText("You Win!", cameraX + canvas.width/2 - 100, canvas.height / 2);
   }
 
   ctx.restore();
@@ -114,53 +118,49 @@ function draw() {
 
 function update() {
   if (!gameOver && !youWin) {
-    // Move player
     if (isLeft) player.x -= speed;
     if (isRight) player.x += speed;
 
     player.dy += gravity;
     player.y += player.dy;
 
-    // Check for ground collision
+    // ground collision
     if (player.y + player.h >= 360) {
       player.y = 360 - player.h;
       player.dy = 0;
       player.onGround = true;
     }
 
-    // Check spikes
+    // spikes collision
     spikes.forEach(s => {
       if (player.x < s.x + s.w && player.x + player.w > s.x &&
           player.y < s.y + s.h && player.y + player.h > s.y) {
         gameOver = true;
-        isLeft = false;
-        isRight = false;
+        isLeft = false; isRight = false;
       }
     });
 
-    // Check enemies
+    // enemies move and collision
     enemies.forEach(e => {
       e.x += e.dir * 4;
       if (e.x <= 300 || e.x + e.w >= 500) e.dir *= -1;
       if (player.x < e.x + e.w && player.x + player.w > e.x &&
           player.y < e.y + e.h && player.y + player.h > e.y) {
         gameOver = true;
-        isLeft = false;
-        isRight = false;
+        isLeft = false; isRight = false;
       }
     });
 
-    // Check win condition
+    // win condition
     if (player.x < door.x + door.w && player.x + player.w > door.x &&
         player.y < door.y + door.h && player.y + player.h > door.y) {
       youWin = true;
-      isLeft = false;
-      isRight = false;
+      isLeft = false; isRight = false;
     }
 
-    // Camera follows the player
-    camera.x = Math.max(0, player.x - canvas.width / 2); // Keep player centered horizontally
-    camera.y = Math.max(0, Math.min(360 - canvas.height, player.y - canvas.height / 2)); // Vertical movement limit
+    // camera follows player
+    cameraX = player.x - canvas.width/2 + player.w/2;
+    if (cameraX < 0) cameraX = 0;
   }
 }
 
