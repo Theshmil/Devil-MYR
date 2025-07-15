@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Level Devil Clone</title>
+<style>
+  body { margin: 0; background: #111; color: #0f0; font-family: monospace; }
+  canvas { display: block; margin: auto; background: #222; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Game objects
+let player = { x: 50, y: 300, width: 20, height: 20, vy: 0, onGround: false };
+let gravity = 0.8;
+let jumpPower = -12;
+let floorY = 350;
+
+// Controls
+let keys = {};
+document.addEventListener('keydown', e => keys[e.code] = true);
+document.addEventListener('keyup', e => keys[e.code] = false);
+
+// Spikes
+let spikes = [{x: 400, y: floorY - 10, width: 20, height: 10}];
+
+function gameLoop() {
+  // Update
+  player.vy += gravity;
+  player.y += player.vy;
+
+  // Left/Right
+  if (keys['ArrowRight']) player.x += 4;
+  if (keys['ArrowLeft']) player.x -= 4;
+
+  // Jump
+  if (keys['Space'] && player.onGround) {
+    player.vy = jumpPower;
+    player.onGround = false;
+  }
+
+  // Floor collision
+  if (player.y + player.height > floorY) {
+    player.y = floorY - player.height;
+    player.vy = 0;
+    player.onGround = true;
+  }
+
+  // Spike collision
+  for (let s of spikes) {
+    if (player.x < s.x + s.width && player.x + player.width > s.x &&
+        player.y < s.y + s.height && player.y + player.height > s.y) {
+      // Reset player on hit
+      player.x = 50; player.y = 300; player.vy = 0;
+      alert("You got trolled! 😈");
+    }
+  }
+
+  // Draw
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  
+  // Floor
+  ctx.fillStyle = "#444";
+  ctx.fillRect(0, floorY, canvas.width, canvas.height - floorY);
+  
+  // Player
+  ctx.fillStyle = "#0f0";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  
+  // Spikes
+  ctx.fillStyle = "#f00";
+  for (let s of spikes) {
+    ctx.fillRect(s.x, s.y, s.width, s.height);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
