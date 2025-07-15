@@ -5,169 +5,112 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Level Devil Clone</title>
 <style>
-  body { margin: 0; background: #111; color: #0f0; font-family: monospace; overflow: hidden; }
-  canvas { display: block; margin: auto; background: #222; }
+  body {
+    margin: 0; 
+    background: #111; 
+    font-family: monospace;
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    height: 100vh;
+  }
+  canvas {
+    background: #222; 
+    display: block;
+  }
   .controls {
-    position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 10px;
+    display: flex; 
+    gap: 20px;
+    margin-top: 10px;
   }
   .btn {
-    background: #444; color: #0f0; border: none; padding: 10px 20px;
-    font-size: 18px; border-radius: 5px; user-select: none;
+    width: 80px; 
+    height: 80px; 
+    background: #444; 
+    color: #0f0; 
+    border: none; 
+    font-size: 32px; 
+    border-radius: 10px;
+    user-select: none;
   }
 </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="800" height="400"></canvas>
-
+<canvas id="game" width="400" height="200"></canvas>
 <div class="controls">
-  <button class="btn" id="leftBtn">←</button>
-  <button class="btn" id="jumpBtn">⭡</button>
-  <button class="btn" id="rightBtn">→</button>
+  <button class="btn" id="left">◀️</button>
+  <button class="btn" id="jump">⬆️</button>
+  <button class="btn" id="right">▶️</button>
 </div>
-
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-// Player
-let player = { x: 50, y: 300, width: 20, height: 20, vy: 0, onGround: false };
+let player = { x: 20, y: 160, w: 10, h: 10, dx: 0, dy: 0, jumping: false };
 let gravity = 0.8;
-let jumpPower = -12;
-let floorY = 350;
+let ground = 170;
 
-// Controls
-let keys = { left: false, right: false, jump: false };
-document.addEventListener('keydown', e => {
-  if (e.code === 'ArrowLeft') keys.left = true;
-  if (e.code === 'ArrowRight') keys.right = true;
-  if (e.code === 'Space') keys.jump = true;
-});
-document.addEventListener('keyup', e => {
-  if (e.code === 'ArrowLeft') keys.left = false;
-  if (e.code === 'ArrowRight') keys.right = false;
-  if (e.code === 'Space') keys.jump = false;
-});
-
-// Touch buttons
-document.getElementById('leftBtn').addEventListener('touchstart', () => keys.left = true);
-document.getElementById('leftBtn').addEventListener('touchend', () => keys.left = false);
-document.getElementById('rightBtn').addEventListener('touchstart', () => keys.right = true);
-document.getElementById('rightBtn').addEventListener('touchend', () => keys.right = false);
-document.getElementById('jumpBtn').addEventListener('touchstart', () => {
-  if (player.onGround) {
-    player.vy = jumpPower;
-    player.onGround = false;
-  }
-});
-
-// Spikes
-let spikes = [
-  {x: 400, y: floorY - 10, width: 20, height: 10, popUp: false, timer: 0}
+let obstacles = [
+  { x: 100, y: ground, w: 20, h: 10 },
+  { x: 200, y: ground-20, w: 20, h: 30 },
+  { x: 300, y: ground, w: 20, h: 10 }
 ];
 
-// Troll holes
-let holes = [{x: 200, width: 50}];
-
-// Disappearing platforms
-let disappearPlatforms = [
-  {x: 600, y: floorY - 20, width: 50, height: 10, visible: true, timer: 0}
-];
-
-function gameLoop() {
-  // Update player
-  player.vy += gravity;
-  player.y += player.vy;
-
-  if (keys.right) player.x += 4;
-  if (keys.left) player.x -= 4;
-
-  // Jump key (keyboard)
-  if (keys.jump && player.onGround) {
-    player.vy = jumpPower;
-    player.onGround = false;
-  }
-
-  // Floor collision except holes
-  let onHole = holes.some(h => player.x + player.width > h.x && player.x < h.x + h.width);
-  if (player.y + player.height > floorY && !onHole) {
-    player.y = floorY - player.height;
-    player.vy = 0;
-    player.onGround = true;
-  } else if (player.y + player.height > canvas.height) {
-    // Fell into hole
-    resetPlayer("You fell! 😈");
-  }
-
-  // Disappearing platform logic
-  disappearPlatforms.forEach(p => {
-    p.timer += 1;
-    if (p.timer > 100) {
-      p.visible = !p.visible;
-      p.timer = 0;
-    }
-    if (p.visible &&
-        player.x + player.width > p.x && player.x < p.x + p.width &&
-        player.y + player.height > p.y && player.y + player.height < p.y + 10) {
-      player.y = p.y - player.height;
-      player.vy = 0;
-      player.onGround = true;
-    }
-  });
-
-  // Spike pop-up logic
-  spikes.forEach(s => {
-    s.timer += 1;
-    if (s.timer > 80) {
-      s.popUp = !s.popUp;
-      s.timer = 0;
-    }
-    if (s.popUp) {
-      if (player.x < s.x + s.width && player.x + player.width > s.x &&
-          player.y + player.height > s.y && player.y < s.y + s.height) {
-        resetPlayer("You got spiked! 😈");
-      }
-    }
-  });
-
-  // Draw
+function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // Floor
-  ctx.fillStyle = "#444";
-  ctx.fillRect(0, floorY, canvas.width, canvas.height - floorY);
-
-  // Holes
-  ctx.fillStyle = "#000";
-  holes.forEach(h => {
-    ctx.fillRect(h.x, floorY, h.width, canvas.height - floorY);
-  });
-
-  // Disappearing platforms
-  ctx.fillStyle = "#888";
-  disappearPlatforms.forEach(p => {
-    if (p.visible) ctx.fillRect(p.x, p.y, p.width, p.height);
-  });
-
-  // Player
+  // Draw ground
+  ctx.fillStyle = "#555";
+  ctx.fillRect(0, ground, canvas.width, canvas.height-ground);
+  
+  // Draw player
   ctx.fillStyle = "#0f0";
-  ctx.fillRect(player.x, player.y, player.width, player.height);
-
-  // Spikes
-  spikes.forEach(s => {
-    ctx.fillStyle = s.popUp ? "#f00" : "#400";
-    ctx.fillRect(s.x, s.y, s.width, s.height);
-  });
-
-  requestAnimationFrame(gameLoop);
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  
+  // Draw obstacles
+  ctx.fillStyle = "#f00";
+  for (let obs of obstacles) {
+    ctx.fillRect(obs.x, obs.y - obs.h, obs.w, obs.h);
+  }
 }
 
-function resetPlayer(msg) {
-  alert(msg);
-  player.x = 50; player.y = 300; player.vy = 0;
+function update() {
+  player.dy += gravity;
+  player.y += player.dy;
+  player.x += player.dx;
+
+  // prevent falling through ground
+  if (player.y + player.h > ground) {
+    player.y = ground - player.h;
+    player.dy = 0;
+    player.jumping = false;
+  }
+  
+  // keep inside canvas
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
 }
 
-gameLoop();
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+document.getElementById("left").addEventListener("touchstart", () => player.dx = -2);
+document.getElementById("left").addEventListener("touchend", () => player.dx = 0);
+
+document.getElementById("right").addEventListener("touchstart", () => player.dx = 2);
+document.getElementById("right").addEventListener("touchend", () => player.dx = 0);
+
+document.getElementById("jump").addEventListener("touchstart", () => {
+  if (!player.jumping) {
+    player.dy = -10;
+    player.jumping = true;
+  }
+});
+
+loop();
 </script>
 </body>
 </html>
