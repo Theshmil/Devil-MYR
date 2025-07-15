@@ -8,7 +8,7 @@
   canvas { background:#222; display:block; margin:auto; }
   .controls {
     position: fixed; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
-    display: flex; gap: 40px;
+    display: flex; gap: 80px;  /* increased gap for more distance */
   }
   .controls button {
     width: 100px; height: 100px; font-size: 40px; background: #444; color: white;
@@ -25,7 +25,7 @@
 <canvas id="game" width="1000" height="400"></canvas>
 <div class="controls">
   <button onpointerdown="left=true" onpointerup="left=false">◀</button>
-  <button onpointerdown="jumpAction()" >⬆</button>
+  <button onpointerdown="jumpAction()">⬆</button>
   <button onpointerdown="right=true" onpointerup="right=false">▶</button>
 </div>
 <center><button id="restartBtn" onclick="restart()">Restart</button></center>
@@ -82,13 +82,11 @@ function update() {
 
   player.x += player.dx;
 
-  // Ground check
   if (player.y + player.h > ground) {
     player.y = ground - player.h;
     player.dy = 0; player.jumping = false;
   }
 
-  // Hit spike → game over
   for (let obs of obstacles) {
     if (collideRect(player, obs)) {
       gameOver = true;
@@ -96,7 +94,6 @@ function update() {
     }
   }
 
-  // Move enemies and keep inside min/max
   for (let e of enemies) {
     e.x += e.dir * e.speed;
     if (e.x < e.minX || e.x+e.w > e.maxX) e.dir *= -1;
@@ -106,13 +103,11 @@ function update() {
     }
   }
 
-  // Door → win
   if (collideRect(player, door)) {
     youWin=true;
     document.getElementById('restartBtn').style.display='block';
   }
 
-  // Stay in canvas
   if (player.x<0) player.x=0;
   if (player.x+player.w>canvas.width) player.x=canvas.width-player.w;
 }
@@ -125,7 +120,6 @@ function draw() {
   ctx.fillStyle="green";
   ctx.fillRect(player.x,player.y,player.w,player.h);
 
-  // Draw spikes as triangles
   ctx.fillStyle="red";
   for (let obs of obstacles) {
     ctx.beginPath();
@@ -136,11 +130,9 @@ function draw() {
     ctx.fill();
   }
 
-  // Enemies
   ctx.fillStyle="orange";
   for (let e of enemies) ctx.fillRect(e.x,e.y,e.w,e.h);
 
-  // Door
   ctx.fillStyle="blue";
   ctx.fillRect(door.x,door.y,door.w,door.h);
 
