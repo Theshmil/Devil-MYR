@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mini Devil Game</title>
+<title>Level Devil Mini Game</title>
 <style>
   body { margin: 0; background: #111; color: #fff; text-align: center; }
   canvas { background: #222; display: block; margin: 0 auto; }
@@ -16,8 +16,8 @@
     color: orange;
     border: none;
     border-radius: 10px;
-    width: 70px;
-    height: 70px;
+    width: 80px;
+    height: 80px;
   }
   #restartBtn {
     font-size: 24px;
@@ -32,7 +32,7 @@
 </style>
 </head>
 <body>
-<canvas id="game" width="400" height="200"></canvas>
+<canvas id="game" width="1000" height="250"></canvas>
 <div id="controls">
   <button class="btn" ontouchstart="left=true" ontouchend="left=false">◀️</button>
   <button class="btn" ontouchstart="jumpAction()">⬆️</button>
@@ -43,22 +43,31 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-let player, obstacles, door;
-let gravity = 0.5;
+let player, obstacles, door, enemies;
+let gravity = 0.6;
 let gameOver = false;
 let youWin = false;
 
 let left = false, right = false;
-let ground = canvas.height - 20;
+let ground = canvas.height - 30;
 
 function init() {
-  player = { x: 10, y: ground-20, w:10, h:10, dx:0, dy:0, jumping:false };
+  player = { x: 10, y: ground-20, w:20, h:20, dx:0, dy:0, jumping:false };
   obstacles = [
-    {x: 100, y: ground-20, w:10, h:20},
-    {x: 180, y: ground-10, w:10, h:10},
-    {x: 250, y: ground-10, w:10, h:10},
+    {x: 100, y: ground-30, w:20, h:30},
+    {x: 200, y: ground-20, w:20, h:20},
+    {x: 300, y: ground-30, w:20, h:30},
+    {x: 400, y: ground-40, w:20, h:40},
+    {x: 500, y: ground-20, w:20, h:20},
+    {x: 600, y: ground-50, w:20, h:50},
+    {x: 700, y: ground-20, w:20, h:20},
+    {x: 800, y: ground-40, w:20, h:40},
   ];
-  door = {x: 350, y: ground-20, w:10, h:20};
+  enemies = [
+    {x: 350, y: ground-20, w:20, h:20, dir:1},
+    {x: 650, y: ground-20, w:20, h:20, dir:-1},
+  ];
+  door = {x: 950, y: ground-30, w:20, h:30};
   gameOver = false;
   youWin = false;
   document.getElementById('restartBtn').style.display = 'none';
@@ -66,7 +75,7 @@ function init() {
 
 function jumpAction() {
   if (!player.jumping) {
-    player.dy = -7;
+    player.dy = -10;
     player.jumping = true;
   }
 }
@@ -81,8 +90,8 @@ function update() {
   player.dy += gravity;
   player.y += player.dy;
 
-  if (left) player.dx = -2;
-  else if (right) player.dx = 2;
+  if (left) player.dx = -3;
+  else if (right) player.dx = 3;
   else player.dx = 0;
 
   player.x += player.dx;
@@ -100,6 +109,15 @@ function update() {
     }
   }
 
+  for (let e of enemies) {
+    e.x += e.dir * 2;
+    if (e.x < e.start-20 || e.x > e.start+20) e.dir *= -1;
+    if (collideRect(player, e)) {
+      gameOver = true;
+      document.getElementById('restartBtn').style.display = 'block';
+    }
+  }
+
   if (collideRect(player, door)) {
     youWin = true;
     document.getElementById('restartBtn').style.display = 'block';
@@ -112,7 +130,7 @@ function update() {
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle="#555";
-  ctx.fillRect(0,ground,canvas.width,20);
+  ctx.fillRect(0,ground,canvas.width,30);
 
   ctx.fillStyle="green";
   ctx.fillRect(player.x,player.y,player.w,player.h);
@@ -121,18 +139,22 @@ function draw() {
   for (let obs of obstacles)
     ctx.fillRect(obs.x,obs.y,obs.w,obs.h);
 
+  ctx.fillStyle="orange";
+  for (let e of enemies)
+    ctx.fillRect(e.x,e.y,e.w,e.h);
+
   ctx.fillStyle="blue";
   ctx.fillRect(door.x,door.y,door.w,door.h);
 
   if (gameOver) {
     ctx.fillStyle="white";
-    ctx.font="20px monospace";
-    ctx.fillText("Game Over", canvas.width/2-50, canvas.height/2);
+    ctx.font="24px monospace";
+    ctx.fillText("Game Over", canvas.width/2-60, canvas.height/2);
   }
 
   if (youWin) {
     ctx.fillStyle="white";
-    ctx.font="20px monospace";
+    ctx.font="24px monospace";
     ctx.fillText("YOU WIN!", canvas.width/2-50, canvas.height/2);
   }
 }
