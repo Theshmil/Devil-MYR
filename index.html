@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <title>Level Devil Clone</title>
 <style>
-  body { margin: 0; background: #111; }
-  canvas { background: #222; display: block; margin: auto; }
+  body { margin:0; background:#111; }
+  canvas { background:#222; display:block; margin:auto; }
   .controls {
     position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 20px;
   }
   .controls button {
-    width: 60px; height: 60px; font-size: 24px; background: #444; color: white;
-    border: none; border-radius: 10px;
+    width: 70px; height: 70px; font-size: 32px; background: #444; color: white;
+    border: none; border-radius: 12px;
   }
   #restartBtn {
     display: none; margin-top: 20px; font-size: 24px; color: lime;
@@ -24,9 +24,9 @@
 
 <canvas id="game" width="1000" height="400"></canvas>
 <div class="controls">
-  <button onclick="left=true" onmouseup="left=false" onmouseleave="left=false">◀</button>
+  <button onpointerdown="left=true" onpointerup="left=false">◀</button>
   <button onclick="jumpAction()">⬆</button>
-  <button onclick="right=true" onmouseup="right=false" onmouseleave="right=false">▶</button>
+  <button onpointerdown="right=true" onpointerup="right=false">▶</button>
 </div>
 <center><button id="restartBtn" onclick="restart()">Restart</button></center>
 
@@ -35,32 +35,28 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 let player, obstacles, door, enemies;
-let gravity = 0.6;
-let gameOver = false;
-let youWin = false;
-
+let gravity = 0.5;
+let gameOver = false, youWin = false;
 let left = false, right = false;
 let ground = canvas.height - 30;
 
 function init() {
   player = { x: 10, y: ground-20, w:20, h:20, dx:0, dy:0, jumping:false };
+  // Logical stage: gaps, jumps, space
   obstacles = [
-    {x: 100, y: ground-30, w:20, h:30},
-    {x: 200, y: ground-20, w:20, h:20},
-    {x: 300, y: ground-30, w:20, h:30},
-    {x: 400, y: ground-40, w:20, h:40},
-    {x: 500, y: ground-20, w:20, h:20},
-    {x: 600, y: ground-50, w:20, h:50},
-    {x: 700, y: ground-20, w:20, h:20},
-    {x: 800, y: ground-40, w:20, h:40},
+    {x: 100, y: ground-30, w:40, h:30},
+    {x: 200, y: ground-40, w:40, h:40},
+    {x: 300, y: ground-30, w:40, h:30},
+    {x: 500, y: ground-40, w:40, h:40},
+    {x: 650, y: ground-30, w:40, h:30},
+    {x: 800, y: ground-40, w:40, h:40},
   ];
   enemies = [
-    {x: 350, y: ground-20, w:20, h:20, dir:1, speed:2},
-    {x: 650, y: ground-20, w:20, h:20, dir:-1, speed:2},
+    {x: 350, y: ground-20, w:20, h:20, dir:1, speed:1.5},
+    {x: 700, y: ground-20, w:20, h:20, dir:-1, speed:1.5},
   ];
   door = {x: 950, y: ground-30, w:20, h:30};
-  gameOver = false;
-  youWin = false;
+  gameOver = false; youWin = false;
   document.getElementById('restartBtn').style.display = 'none';
 }
 
@@ -78,7 +74,6 @@ function collideRect(a,b) {
 function update() {
   if (gameOver || youWin) return;
 
-  // Player movement & gravity
   player.dy += gravity;
   player.y += player.dy;
 
@@ -88,14 +83,13 @@ function update() {
 
   player.x += player.dx;
 
-  // Stay on ground
+  // Ground check
   if (player.y + player.h > ground) {
     player.y = ground - player.h;
-    player.dy = 0;
-    player.jumping = false;
+    player.dy = 0; player.jumping = false;
   }
 
-  // Check collision with obstacles
+  // Hit obstacle → game over
   for (let obs of obstacles) {
     if (collideRect(player, obs) && player.y + player.h - 2 <= obs.y + obs.h) {
       gameOver = true;
@@ -103,38 +97,31 @@ function update() {
     }
   }
 
-  // Enemies logic
+  // Enemies move, bounce on obstacles & edge
   for (let e of enemies) {
     e.x += e.dir * e.speed;
-
-    let collided = false;
+    let hit = false;
     for (let obs of obstacles) {
       if (collideRect(e, obs)) {
-        e.dir *= -1;
-        e.x += e.dir * e.speed; // move back after turning
-        collided = true;
-        break;
+        e.dir *= -1; e.x += e.dir*e.speed; hit=true; break;
       }
     }
-
-    // Turn back at edges
-    if (e.x < 0 || e.x+e.w > canvas.width) e.dir *= -1;
-
+    if (e.x<0 || e.x+e.w>canvas.width) e.dir*=-1;
     if (collideRect(player, e)) {
-      gameOver = true;
-      document.getElementById('restartBtn').style.display = 'block';
+      gameOver=true;
+      document.getElementById('restartBtn').style.display='block';
     }
   }
 
-  // Win condition
+  // Door → win
   if (collideRect(player, door)) {
-    youWin = true;
-    document.getElementById('restartBtn').style.display = 'block';
+    youWin=true;
+    document.getElementById('restartBtn').style.display='block';
   }
 
-  // Stay inside canvas
-  if (player.x < 0) player.x = 0;
-  if (player.x+player.w > canvas.width) player.x = canvas.width - player.w;
+  // Stay in canvas
+  if (player.x<0) player.x=0;
+  if (player.x+player.w>canvas.width) player.x=canvas.width-player.w;
 }
 
 function draw() {
@@ -146,12 +133,10 @@ function draw() {
   ctx.fillRect(player.x,player.y,player.w,player.h);
 
   ctx.fillStyle="red";
-  for (let obs of obstacles)
-    ctx.fillRect(obs.x,obs.y,obs.w,obs.h);
+  for (let obs of obstacles) ctx.fillRect(obs.x,obs.y,obs.w,obs.h);
 
   ctx.fillStyle="orange";
-  for (let e of enemies)
-    ctx.fillRect(e.x,e.y,e.w,e.h);
+  for (let e of enemies) ctx.fillRect(e.x,e.y,e.w,e.h);
 
   ctx.fillStyle="blue";
   ctx.fillRect(door.x,door.y,door.w,door.h);
@@ -159,28 +144,23 @@ function draw() {
   if (gameOver) {
     ctx.fillStyle="white";
     ctx.font="24px monospace";
-    ctx.fillText("Game Over", canvas.width/2-60, canvas.height/2);
+    ctx.fillText("Game Over",canvas.width/2-60,canvas.height/2);
   }
-
   if (youWin) {
     ctx.fillStyle="white";
     ctx.font="24px monospace";
-    ctx.fillText("YOU WIN!", canvas.width/2-50, canvas.height/2);
+    ctx.fillText("YOU WIN!",canvas.width/2-50,canvas.height/2);
   }
 }
 
 function loop() {
-  update();
-  draw();
+  update(); draw();
   requestAnimationFrame(loop);
 }
 
-function restart() {
-  init();
-}
+function restart() { init(); }
 
-init();
-loop();
+init(); loop();
 </script>
 
 </body>
