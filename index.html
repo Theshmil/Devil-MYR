@@ -158,7 +158,7 @@ function update() {
       isLeft = false; isRight = false;
     }
 
-    // camera follows player
+    // camera always centers player
     cameraX = player.x - canvas.width/2 + player.w/2;
     if (cameraX < 0) cameraX = 0;
   }
