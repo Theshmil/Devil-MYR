@@ -5,12 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Level Devil Clone</title>
 <style>
-  body { margin: 0; background: #111; color: #0f0; font-family: monospace; }
+  body { margin: 0; background: #111; color: #0f0; font-family: monospace; overflow: hidden; }
   canvas { display: block; margin: auto; background: #222; }
+  .controls {
+    position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px;
+  }
+  .btn {
+    background: #444; color: #0f0; border: none; padding: 10px 20px;
+    font-size: 18px; border-radius: 5px; user-select: none;
+  }
 </style>
 </head>
 <body>
 <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<div class="controls">
+  <button class="btn" id="leftBtn">←</button>
+  <button class="btn" id="jumpBtn">⭡</button>
+  <button class="btn" id="rightBtn">→</button>
+</div>
+
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -22,9 +37,29 @@ let jumpPower = -12;
 let floorY = 350;
 
 // Controls
-let keys = {};
-document.addEventListener('keydown', e => keys[e.code] = true);
-document.addEventListener('keyup', e => keys[e.code] = false);
+let keys = { left: false, right: false, jump: false };
+document.addEventListener('keydown', e => {
+  if (e.code === 'ArrowLeft') keys.left = true;
+  if (e.code === 'ArrowRight') keys.right = true;
+  if (e.code === 'Space') keys.jump = true;
+});
+document.addEventListener('keyup', e => {
+  if (e.code === 'ArrowLeft') keys.left = false;
+  if (e.code === 'ArrowRight') keys.right = false;
+  if (e.code === 'Space') keys.jump = false;
+});
+
+// Touch buttons
+document.getElementById('leftBtn').addEventListener('touchstart', () => keys.left = true);
+document.getElementById('leftBtn').addEventListener('touchend', () => keys.left = false);
+document.getElementById('rightBtn').addEventListener('touchstart', () => keys.right = true);
+document.getElementById('rightBtn').addEventListener('touchend', () => keys.right = false);
+document.getElementById('jumpBtn').addEventListener('touchstart', () => {
+  if (player.onGround) {
+    player.vy = jumpPower;
+    player.onGround = false;
+  }
+});
 
 // Spikes
 let spikes = [
@@ -44,11 +79,11 @@ function gameLoop() {
   player.vy += gravity;
   player.y += player.vy;
 
-  if (keys['ArrowRight']) player.x += 4;
-  if (keys['ArrowLeft']) player.x -= 4;
+  if (keys.right) player.x += 4;
+  if (keys.left) player.x -= 4;
 
-  // Jump
-  if (keys['Space'] && player.onGround) {
+  // Jump key (keyboard)
+  if (keys.jump && player.onGround) {
     player.vy = jumpPower;
     player.onGround = false;
   }
