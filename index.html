@@ -8,15 +8,15 @@
   canvas { background:#222; display:block; margin:auto; }
   .controls {
     position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 20px;
+    display: flex; gap: 30px;
   }
   .controls button {
-    width: 70px; height: 70px; font-size: 32px; background: #444; color: white;
-    border: none; border-radius: 12px;
+    width: 90px; height: 90px; font-size: 36px; background: #444; color: white;
+    border: none; border-radius: 16px;
   }
   #restartBtn {
     display: none; margin-top: 20px; font-size: 24px; color: lime;
-    background: #444; padding: 10px 20px; border: none; border-radius: 10px;
+    background: #444; padding: 12px 24px; border: none; border-radius: 12px;
   }
 </style>
 </head>
@@ -42,18 +42,18 @@ let ground = canvas.height - 30;
 
 function init() {
   player = { x: 10, y: ground-20, w:20, h:20, dx:0, dy:0, jumping:false };
-  // Logical stage: gaps, jumps, space
+  // Replace red block with spikes (still data as obstacles)
   obstacles = [
-    {x: 100, y: ground-30, w:40, h:30},
-    {x: 200, y: ground-40, w:40, h:40},
-    {x: 300, y: ground-30, w:40, h:30},
-    {x: 500, y: ground-40, w:40, h:40},
-    {x: 650, y: ground-30, w:40, h:30},
-    {x: 800, y: ground-40, w:40, h:40},
+    {x: 100, y: ground-20, w:20, h:20},
+    {x: 200, y: ground-20, w:20, h:20},
+    {x: 300, y: ground-20, w:20, h:20},
+    {x: 500, y: ground-20, w:20, h:20},
+    {x: 650, y: ground-20, w:20, h:20},
+    {x: 800, y: ground-20, w:20, h:20},
   ];
   enemies = [
-    {x: 350, y: ground-20, w:20, h:20, dir:1, speed:1.5},
-    {x: 700, y: ground-20, w:20, h:20, dir:-1, speed:1.5},
+    {x: 400, y: ground-20, w:20, h:20, dir:1, speed:1.2},
+    {x: 700, y: ground-20, w:20, h:20, dir:-1, speed:1.2},
   ];
   door = {x: 950, y: ground-30, w:20, h:30};
   gameOver = false; youWin = false;
@@ -89,23 +89,17 @@ function update() {
     player.dy = 0; player.jumping = false;
   }
 
-  // Hit obstacle → game over
+  // Hit spike → game over
   for (let obs of obstacles) {
-    if (collideRect(player, obs) && player.y + player.h - 2 <= obs.y + obs.h) {
+    if (collideRect(player, obs)) {
       gameOver = true;
       document.getElementById('restartBtn').style.display = 'block';
     }
   }
 
-  // Enemies move, bounce on obstacles & edge
+  // Enemies move, bounce left/right
   for (let e of enemies) {
     e.x += e.dir * e.speed;
-    let hit = false;
-    for (let obs of obstacles) {
-      if (collideRect(e, obs)) {
-        e.dir *= -1; e.x += e.dir*e.speed; hit=true; break;
-      }
-    }
     if (e.x<0 || e.x+e.w>canvas.width) e.dir*=-1;
     if (collideRect(player, e)) {
       gameOver=true;
@@ -132,12 +126,22 @@ function draw() {
   ctx.fillStyle="green";
   ctx.fillRect(player.x,player.y,player.w,player.h);
 
+  // Draw spikes as triangles
   ctx.fillStyle="red";
-  for (let obs of obstacles) ctx.fillRect(obs.x,obs.y,obs.w,obs.h);
+  for (let obs of obstacles) {
+    ctx.beginPath();
+    ctx.moveTo(obs.x, obs.y+obs.h);
+    ctx.lineTo(obs.x+obs.w/2, obs.y);
+    ctx.lineTo(obs.x+obs.w, obs.y+obs.h);
+    ctx.closePath();
+    ctx.fill();
+  }
 
+  // Enemies
   ctx.fillStyle="orange";
   for (let e of enemies) ctx.fillRect(e.x,e.y,e.w,e.h);
 
+  // Door
   ctx.fillStyle="blue";
   ctx.fillRect(door.x,door.y,door.w,door.h);
 
