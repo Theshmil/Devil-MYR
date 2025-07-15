@@ -1,44 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Level Devil Mini Game</title>
+<meta charset="UTF-8">
+<title>Level Devil Clone</title>
 <style>
-  body { margin: 0; background: #111; color: #fff; text-align: center; }
-  canvas { background: #222; display: block; margin: 0 auto; }
-  #controls { margin-top: 10px; }
-  .btn {
-    font-size: 30px;
-    padding: 20px;
-    margin: 5px;
-    background: #444;
-    color: orange;
-    border: none;
-    border-radius: 10px;
-    width: 80px;
-    height: 80px;
+  body { margin: 0; background: #111; }
+  canvas { background: #222; display: block; margin: auto; }
+  .controls {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 20px;
+  }
+  .controls button {
+    width: 60px; height: 60px; font-size: 24px; background: #444; color: white;
+    border: none; border-radius: 10px;
   }
   #restartBtn {
-    font-size: 24px;
-    color: lime;
-    background: #444;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 20px;
-    display: none;
-    margin-top: 10px;
+    display: none; margin-top: 20px; font-size: 24px; color: lime;
+    background: #444; padding: 10px 20px; border: none; border-radius: 10px;
   }
 </style>
 </head>
 <body>
-<canvas id="game" width="1000" height="250"></canvas>
-<div id="controls">
-  <button class="btn" ontouchstart="left=true" ontouchend="left=false">◀️</button>
-  <button class="btn" ontouchstart="jumpAction()">⬆️</button>
-  <button class="btn" ontouchstart="right=true" ontouchend="right=false">▶️</button>
+
+<canvas id="game" width="1000" height="400"></canvas>
+<div class="controls">
+  <button onclick="left=true" onmouseup="left=false" onmouseleave="left=false">◀</button>
+  <button onclick="jumpAction()">⬆</button>
+  <button onclick="right=true" onmouseup="right=false" onmouseleave="right=false">▶</button>
 </div>
-<button id="restartBtn" onclick="restart()">Restart</button>
+<center><button id="restartBtn" onclick="restart()">Restart</button></center>
+
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -64,8 +55,8 @@ function init() {
     {x: 800, y: ground-40, w:20, h:40},
   ];
   enemies = [
-    {x: 350, y: ground-20, w:20, h:20, dir:1},
-    {x: 650, y: ground-20, w:20, h:20, dir:-1},
+    {x: 350, y: ground-20, w:20, h:20, dir:1, speed:2},
+    {x: 650, y: ground-20, w:20, h:20, dir:-1, speed:2},
   ];
   door = {x: 950, y: ground-30, w:20, h:30};
   gameOver = false;
@@ -87,6 +78,7 @@ function collideRect(a,b) {
 function update() {
   if (gameOver || youWin) return;
 
+  // Player movement & gravity
   player.dy += gravity;
   player.y += player.dy;
 
@@ -96,12 +88,14 @@ function update() {
 
   player.x += player.dx;
 
+  // Stay on ground
   if (player.y + player.h > ground) {
     player.y = ground - player.h;
     player.dy = 0;
     player.jumping = false;
   }
 
+  // Check collision with obstacles
   for (let obs of obstacles) {
     if (collideRect(player, obs) && player.y + player.h - 2 <= obs.y + obs.h) {
       gameOver = true;
@@ -109,20 +103,36 @@ function update() {
     }
   }
 
+  // Enemies logic
   for (let e of enemies) {
-    e.x += e.dir * 2;
-    if (e.x < e.start-20 || e.x > e.start+20) e.dir *= -1;
+    e.x += e.dir * e.speed;
+
+    let collided = false;
+    for (let obs of obstacles) {
+      if (collideRect(e, obs)) {
+        e.dir *= -1;
+        e.x += e.dir * e.speed; // move back after turning
+        collided = true;
+        break;
+      }
+    }
+
+    // Turn back at edges
+    if (e.x < 0 || e.x+e.w > canvas.width) e.dir *= -1;
+
     if (collideRect(player, e)) {
       gameOver = true;
       document.getElementById('restartBtn').style.display = 'block';
     }
   }
 
+  // Win condition
   if (collideRect(player, door)) {
     youWin = true;
     document.getElementById('restartBtn').style.display = 'block';
   }
 
+  // Stay inside canvas
   if (player.x < 0) player.x = 0;
   if (player.x+player.w > canvas.width) player.x = canvas.width - player.w;
 }
@@ -172,5 +182,6 @@ function restart() {
 init();
 loop();
 </script>
+
 </body>
 </html>
