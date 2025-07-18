@@ -3,179 +3,160 @@
 <head>
 <meta charset="UTF-8">
 <title>Level Devil Clone</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-  body { margin:0; overflow:hidden; background:#222; touch-action: manipulation; }
-  canvas { background:#444; display:block; }
-  #controls {
-    position: fixed;
-    bottom: 10%;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 20px;
+  body { margin:0; background:#111; }
+  canvas { background:#222; display:block; margin:auto; }
+  .controls {
+    position: fixed; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
+    display: flex; gap: 38px;  /* ≈ 1cm gap depending on screen DPI */
   }
-  button {
-    width: 100px;
-    height: 100px;
-    font-size: 30px;
-    border-radius: 50%;
-    border: none;
-    background: #666;
-    color: white;
+  .controls button {
+    width: 100px; height: 100px; font-size: 40px; background: #444; color: white;
+    border: none; border-radius: 16px;
+  }
+  #restartBtn {
+    display: none; margin-top: 20px; font-size: 24px; color: lime;
+    background: #444; padding: 12px 24px; border: none; border-radius: 12px;
   }
 </style>
 </head>
 <body>
-<canvas id="game" width="800" height="400"></canvas>
-<div id="controls">
-  <button id="left">◀️</button>
-  <button id="jump">⬆️</button>
-  <button id="right">▶️</button>
+
+<canvas id="game" width="1000" height="400"></canvas>
+<div class="controls">
+  <button onpointerdown="left=true" onpointerup="left=false">◀</button>
+  <button onpointerdown="jumpAction()">⬆</button>
+  <button onpointerdown="right=true" onpointerup="right=false">▶</button>
 </div>
+<center><button id="restartBtn" onclick="restart()">Restart</button></center>
+
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-let player = { x: 100, y: 300, w: 40, h: 40, dy: 0, onGround: false };
-let gravity = 1;
-let jumpStrength = -20;
-let speed = 8;
-let isLeft = false, isRight = false;
-let gameOver = false;
-let youWin = false;
+let player, obstacles, door, enemies;
+let gravity = 0.5;
+let gameOver = false, youWin = false;
+let left = false, right = false;
+let ground = canvas.height - 30;
 
-let spikes = [
-  { x: 400, y: 360, w: 40, h: 40 },
-  { x: 600, y: 360, w: 40, h: 40 }
-];
-let door = { x: 1200, y: 280, w: 40, h: 120 };
-let enemies = [{ x: 800, y: 320, w: 40, h: 40, dir: 1 }];
+function init() {
+  player = { x: 10, y: ground-20, w:20, h:20, dx:0, dy:0, jumping:false };
+  obstacles = [
+    {x: 100, y: ground-20, w:20, h:20},
+    {x: 200, y: ground-20, w:20, h:20},
+    {x: 300, y: ground-20, w:20, h:20},
+    {x: 500, y: ground-20, w:20, h:20},
+    {x: 650, y: ground-20, w:20, h:20},
+    {x: 800, y: ground-20, w:20, h:20},
+  ];
+  enemies = [
+    {x: 400, y: ground-20, w:20, h:20, dir:1, speed:1.2, minX:350, maxX:450},
+    {x: 700, y: ground-20, w:20, h:20, dir:-1, speed:1.2, minX:650, maxX:750},
+  ];
+  door = {x: 950, y: ground-30, w:20, h:30};
+  gameOver = false; youWin = false;
+  document.getElementById('restartBtn').style.display = 'none';
+}
 
-let cameraX = 0;
-
-document.getElementById('left').addEventListener('touchstart', ()=>{ isLeft=true; });
-document.getElementById('left').addEventListener('touchend', ()=>{ isLeft=false; });
-document.getElementById('right').addEventListener('touchstart', ()=>{ isRight=true; });
-document.getElementById('right').addEventListener('touchend', ()=>{ isRight=false; });
-document.getElementById('jump').addEventListener('touchstart', jump);
-document.getElementById('jump').addEventListener('touchend', () => {
-  if (gameOver) resetGame();
-});
-
-function jump() {
-  if (player.onGround && !gameOver && !youWin) {
-    player.dy = jumpStrength;
-    player.onGround = false;
+function jumpAction() {
+  if (!player.jumping) {
+    player.dy = -10;
+    player.jumping = true;
   }
 }
 
-function resetGame() {
-  player.x = 100;
-  player.y = 300;
-  player.dy = 0;
-  gameOver = false;
-  youWin = false;
-}
-
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  ctx.translate(-cameraX, 0);
-
-  // ground
-  ctx.fillStyle="#888";
-  ctx.fillRect(0, 360, 2000, 40);
-
-  // spikes
-  ctx.fillStyle="red";
-  spikes.forEach(s => ctx.fillRect(s.x, s.y, s.w, s.h));
-
-  // door
-  ctx.fillStyle="green";
-  ctx.fillRect(door.x, door.y, door.w, door.h);
-
-  // enemies
-  ctx.fillStyle="purple";
-  enemies.forEach(e => ctx.fillRect(e.x, e.y, e.w, e.h));
-
-  // player
-  ctx.fillStyle="yellow";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-
-  // text
-  if (gameOver) {
-    ctx.fillStyle="white";
-    ctx.font="50px sans-serif";
-    ctx.fillText("Game Over", cameraX + canvas.width/2 - 140, canvas.height / 2);
-    ctx.font="30px sans-serif";
-    ctx.fillText("Tap jump to restart", cameraX + canvas.width/2 - 140, canvas.height / 2 + 40);
-  }
-  if (youWin) {
-    ctx.fillStyle="white";
-    ctx.font="50px sans-serif";
-    ctx.fillText("You Win!", cameraX + canvas.width/2 - 100, canvas.height / 2);
-  }
-
-  ctx.restore();
+function collideRect(a,b) {
+  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
 }
 
 function update() {
-  if (!gameOver && !youWin) {
-    if (isLeft) player.x -= speed;
-    if (isRight) player.x += speed;
+  if (gameOver || youWin) return;
 
-    player.dy += gravity;
-    player.y += player.dy;
+  player.dy += gravity;
+  player.y += player.dy;
 
-    if (player.y + player.h >= 360) {
-      player.y = 360 - player.h;
-      player.dy = 0;
-      player.onGround = true;
+  if (left) player.dx = -3;
+  else if (right) player.dx = 3;
+  else player.dx = 0;
+
+  player.x += player.dx;
+
+  if (player.y + player.h > ground) {
+    player.y = ground - player.h;
+    player.dy = 0; player.jumping = false;
+  }
+
+  for (let obs of obstacles) {
+    if (collideRect(player, obs)) {
+      gameOver = true;
+      document.getElementById('restartBtn').style.display = 'block';
     }
+  }
 
-    // spikes
-    spikes.forEach(s => {
-      if (player.x < s.x + s.w && player.x + player.w > s.x &&
-          player.y < s.y + s.h && player.y + player.h > s.y) {
-        gameOver = true;
-        isLeft = false; isRight = false;
-      }
-    });
-
-    // enemies
-    enemies.forEach(e => {
-      e.x += e.dir * 4;
-      if (e.x <= 700 || e.x + e.w >= 900) e.dir *= -1;
-      if (player.x < e.x + e.w && player.x + player.w > e.x &&
-          player.y < e.y + e.h && player.y + player.h > e.y) {
-        gameOver = true;
-        isLeft = false; isRight = false;
-      }
-    });
-
-    // win
-    if (player.x < door.x + door.w && player.x + player.w > door.x &&
-        player.y < door.y + door.h && player.y + player.h > door.y) {
-      youWin = true;
-      isLeft = false; isRight = false;
+  for (let e of enemies) {
+    e.x += e.dir * e.speed;
+    if (e.x < e.minX || e.x+e.w > e.maxX) e.dir *= -1;
+    if (collideRect(player, e)) {
+      gameOver=true;
+      document.getElementById('restartBtn').style.display='block';
     }
+  }
 
-    // camera follows player (smooth, logical)
-    if (player.x > canvas.width/2) {
-      cameraX = player.x - canvas.width/2;
-    } else {
-      cameraX = 0;
-    }
+  if (collideRect(player, door)) {
+    youWin=true;
+    document.getElementById('restartBtn').style.display='block';
+  }
+
+  if (player.x<0) player.x=0;
+  if (player.x+player.w>canvas.width) player.x=canvas.width-player.w;
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#555";
+  ctx.fillRect(0,ground,canvas.width,30);
+
+  ctx.fillStyle="green";
+  ctx.fillRect(player.x,player.y,player.w,player.h);
+
+  ctx.fillStyle="red";
+  for (let obs of obstacles) {
+    ctx.beginPath();
+    ctx.moveTo(obs.x, obs.y+obs.h);
+    ctx.lineTo(obs.x+obs.w/2, obs.y);
+    ctx.lineTo(obs.x+obs.w, obs.y+obs.h);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.fillStyle="orange";
+  for (let e of enemies) ctx.fillRect(e.x,e.y,e.w,e.h);
+
+  ctx.fillStyle="blue";
+  ctx.fillRect(door.x,door.y,door.w,door.h);
+
+  if (gameOver) {
+    ctx.fillStyle="white";
+    ctx.font="24px monospace";
+    ctx.fillText("Game Over",canvas.width/2-60,canvas.height/2);
+  }
+  if (youWin) {
+    ctx.fillStyle="white";
+    ctx.font="24px monospace";
+    ctx.fillText("YOU WIN!",canvas.width/2-50,canvas.height/2);
   }
 }
 
 function loop() {
-  update();
-  draw();
+  update(); draw();
   requestAnimationFrame(loop);
 }
-loop();
+
+function restart() { init(); }
+
+init(); loop();
 </script>
+
 </body>
 </html>
