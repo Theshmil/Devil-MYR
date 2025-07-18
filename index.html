@@ -5,8 +5,8 @@
 <title>Level Devil Clone</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-  body { margin: 0; overflow: hidden; background: #222; touch-action: manipulation; }
-  canvas { display: block; background: #444; }
+  body { margin:0; overflow:hidden; background:#222; touch-action: manipulation; }
+  canvas { background:#444; display:block; }
   #controls {
     position: fixed;
     bottom: 10%;
@@ -14,7 +14,6 @@
     transform: translateX(-50%);
     display: flex;
     gap: 20px;
-    z-index: 10;
   }
   button {
     width: 100px;
@@ -47,12 +46,11 @@ let gameOver = false;
 let youWin = false;
 
 let spikes = [
-  { x: 300, y: 360, w: 40, h: 40 },
-  { x: 500, y: 360, w: 40, h: 40 },
-  { x: 700, y: 360, w: 40, h: 40 }
+  { x: 400, y: 360, w: 40, h: 40 },
+  { x: 600, y: 360, w: 40, h: 40 }
 ];
 let door = { x: 1200, y: 280, w: 40, h: 120 };
-let enemies = [{ x: 600, y: 320, w: 40, h: 40, dir: 1 }];
+let enemies = [{ x: 800, y: 320, w: 40, h: 40, dir: 1 }];
 
 let cameraX = 0;
 
@@ -82,9 +80,8 @@ function resetGame() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   ctx.save();
-  ctx.translate(-cameraX, 0); // move camera
+  ctx.translate(-cameraX, 0);
 
   // ground
   ctx.fillStyle="#888";
@@ -106,7 +103,7 @@ function draw() {
   ctx.fillStyle="yellow";
   ctx.fillRect(player.x, player.y, player.w, player.h);
 
-  // game over or win text
+  // text
   if (gameOver) {
     ctx.fillStyle="white";
     ctx.font="50px sans-serif";
@@ -131,14 +128,13 @@ function update() {
     player.dy += gravity;
     player.y += player.dy;
 
-    // ground collision
     if (player.y + player.h >= 360) {
       player.y = 360 - player.h;
       player.dy = 0;
       player.onGround = true;
     }
 
-    // spikes collision
+    // spikes
     spikes.forEach(s => {
       if (player.x < s.x + s.w && player.x + player.w > s.x &&
           player.y < s.y + s.h && player.y + player.h > s.y) {
@@ -147,10 +143,10 @@ function update() {
       }
     });
 
-    // enemies move and collision
+    // enemies
     enemies.forEach(e => {
       e.x += e.dir * 4;
-      if (e.x <= 500 || e.x + e.w >= 800) e.dir *= -1;
+      if (e.x <= 700 || e.x + e.w >= 900) e.dir *= -1;
       if (player.x < e.x + e.w && player.x + player.w > e.x &&
           player.y < e.y + e.h && player.y + player.h > e.y) {
         gameOver = true;
@@ -158,16 +154,19 @@ function update() {
       }
     });
 
-    // win condition
+    // win
     if (player.x < door.x + door.w && player.x + player.w > door.x &&
         player.y < door.y + door.h && player.y + player.h > door.y) {
       youWin = true;
       isLeft = false; isRight = false;
     }
 
-    // camera always centers player
-    cameraX = player.x - canvas.width/2 + player.w/2;
-    if (cameraX < 0) cameraX = 0;
+    // camera follows player (smooth, logical)
+    if (player.x > canvas.width/2) {
+      cameraX = player.x - canvas.width/2;
+    } else {
+      cameraX = 0;
+    }
   }
 }
 
@@ -176,7 +175,6 @@ function loop() {
   draw();
   requestAnimationFrame(loop);
 }
-
 loop();
 </script>
 </body>
